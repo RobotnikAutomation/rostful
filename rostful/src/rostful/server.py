@@ -666,6 +666,8 @@ class RostfulServer:
 				input_data = xmltodict.parse(input_data, postprocessor=postprocessor)
 				input_data = json.dumps(input_data)
 				input_data = json.loads(input_data)
+				#print input_data
+				#print input_msg
 
 				# First check if the the key mission exist, otherwise it will raise an exception
 				if input_data.get('mission') != None:

@@ -120,7 +120,7 @@ def _from_list_inst(inst, rostype):
 
     # Remove the list indicators from the rostype
     rostype = list_braces.sub("", rostype)
-    
+
     # Shortcut for primitives
     if rostype in ros_primitive_types:
         return list(inst)
@@ -140,6 +140,11 @@ def _from_object_inst(inst, rostype):
 
 def _to_inst(msg, rostype, roottype, inst=None, stack=[]):
     # Check if it's uint8[], and if it's a string, try to b64decode
+    #print '_to_inst: msg = %s, rostype = %s, roottype = %s, inst = %s, stack = %s'%(msg, rostype, roottype, inst, stack)
+
+    if rostype == "std_msgs/Empty" and msg == None:
+        return "{}"
+
     if rostype in ros_binary_types:
         return _to_binary_inst(msg)
 
@@ -200,16 +205,27 @@ def _to_time_inst(msg, rostype, inst=None):
 
 
 def _to_primitive_inst(msg, rostype, roottype, stack):
+    # print '_to_primitive_inst'
     # Typecheck the msg
     msgtype = type(msg)
+
+    if msgtype == unicode:
+        if str(msg) == "True" or str(msg) == "true":
+            # convert into bool
+            msgtype = bool
+            msg = True
+    #print 'msg = %s, rootype = %s, stack = %s, rostype = %s, msgtype = %s'%(msg, roottype, stack, rostype, msgtype)
+
     if msgtype in primitive_types and rostype in type_map[msgtype.__name__]:
         return msg
     elif msgtype in string_types and rostype in type_map[msgtype.__name__]:
         return msg.encode("ascii", "ignore")
+
     raise FieldTypeMismatchException(roottype, stack, rostype, msgtype)
 
 
 def _to_list_inst(msg, rostype, roottype, inst, stack):
+    #print '_to_list_inst'
     # Typecheck the msg
     if type(msg) not in list_types:
         raise FieldTypeMismatchException(roottype, stack, rostype, type(msg))
@@ -226,6 +242,9 @@ def _to_list_inst(msg, rostype, roottype, inst, stack):
 
 
 def _to_object_inst(msg, rostype, roottype, inst, stack):
+    #print '_to_object_inst'
+    #print 'msg = %s, type = %s, dict = %s'%(msg, type(msg), str(dict))
+
     # Typecheck the msg
     if type(msg) is not dict:
         raise FieldTypeMismatchException(roottype, stack, rostype, type(msg))
