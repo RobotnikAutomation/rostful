@@ -546,8 +546,12 @@ class RostfulServer:
 					output_data = msgconv.extract_values(msg)
 				if first_path[0] == "xml":
 					content_type = 'application/xml'
-					xml = dicttoxml.dicttoxml(output_data, attr_type=False, root=False)
-					output_data = xml
+					if len(output_data.keys()) > 1:
+						xml = dicttoxml.dicttoxml(output_data, attr_type=False, root=True)
+						output_data = xml.replace('root>', path.split('/')[-1] + '>')
+					else:
+						xml = dicttoxml.dicttoxml(output_data, attr_type=False, root=False)
+						output_data = xml
 				else:
 					content_type = 'application/json'
 					output_data = json.dumps(output_data)
