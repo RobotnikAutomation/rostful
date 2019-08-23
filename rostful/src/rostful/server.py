@@ -423,15 +423,13 @@ class RostfulServer:
 			data = data + "<h2>Topics</h2>"
 			for topic_key in sorted(self.topics.keys())	:
 				data = data + "<h3><a href=" + \
-                                    self.args_dict["host"]+":"+str(self.args_dict["port"]) + \
-                                    "/"+topic_key+">"+topic_key+"</a></h3>"
+                                    topic_key+">"+topic_key+"</a></h3>"
 			data = data + "</body></html>"
 
 			data = data + "<h2>Services</h2>"
 			for service_key in sorted(self.services.keys())	:
 				data = data + "<h3><a href=" + \
-                                    self.args_dict["host"]+":"+str(self.args_dict["port"]) + \
-                                    "/"+service_key+">"+service_key+"</a></h3>"
+                                    service_key+">"+service_key+"</a></h3>"
 			data = data + "</body></html>"
 			headers = [('Content-Type', 'text/html'),
                             ('Content-Length', str(data))]
