@@ -214,6 +214,10 @@ def _to_primitive_inst(msg, rostype, roottype, stack):
             # convert into bool
             msgtype = bool
             msg = True
+        if str(msg) == "False" or str(msg) == "false":
+            # convert into bool
+            msgtype = bool
+            msg = False
     #print 'msg = %s, rootype = %s, stack = %s, rostype = %s, msgtype = %s'%(msg, roottype, stack, rostype, msgtype)
 
     if msgtype in primitive_types and rostype in type_map[msgtype.__name__]:
