@@ -1,10 +1,16 @@
+import sys
 import PIL.Image
 import PIL.ImageChops
-import StringIO
+
+if sys.version_info.major < 3:
+	from StringIO import StringIO
+else:
+	from io import StringIO 
+    
 import json
 
-import message_conversion as msgconv
-import server
+import rostful.message_conversion as msgconv
+import rostful.server
 
 
 class Transform(object):
@@ -81,7 +87,7 @@ class ImageTransform(GetTransform):
                 bbox = diff.getbbox()
                 if bbox:
                      im = im.crop(bbox)
-                     print "Cropped"
+                     print("Cropped")
                 else:
                      im = bg
             if maxsize > 0 and maxsize < max(im.size[0], im.size[1]):

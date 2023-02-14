@@ -1,8 +1,15 @@
 from __future__ import absolute_import
-import urlparse
+import sys
 
+if sys.version_info.major < 3:
+	import urlparse
+	from StringIO import StringIO
+else:
+	from urllib.parse import urlparse
+	from io import StringIO 
+ 
 import roslib
-from .transforms import mappings, BadTransform, NullTransform
+from rostful.transforms import mappings, BadTransform, NullTransform
 
 roslib.load_manifest('rostful')
 import rospy
@@ -14,12 +21,10 @@ from importlib import import_module
 from collections import deque
 
 import json
-import sys
 import re
-from StringIO import StringIO
 import socket
 
-from . import message_conversion as msgconv
+import rostful.message_conversion as msgconv
 from . import deffile, definitions
 
 from .util import ROS_MSG_MIMETYPE, get_query_bool
@@ -302,7 +307,7 @@ class RostfulServer:
 				service_name_key = service_name[1:]
 			else:
 				service_name_key = service_name
-			if not self.services.has_key(service_name_key):
+			if  service_name_key not in self.services:
 				ret = self.add_service(service_name)
 				if ret: rospy.loginfo('RostfulServer::add_services: added %s', service_name)
 
@@ -323,7 +328,7 @@ class RostfulServer:
 
 		try:
 			self.topics[ws_name] = Topic(topic_name, topic_type, allow_pub=allow_pub, allow_sub=allow_sub)
-		except Exception, e:
+		except Exception as e:
 			rospy.logerr("RostfulServer::add_topic: Error creating Topic for %s:%s" %(topic_name, topic_type))
 			return False
 
@@ -344,7 +349,7 @@ class RostfulServer:
 				topic_name_key = topic_name[1:]
 			else:
 				topic_name_key = topic_name
-			if not self.topics.has_key(topic_name_key):
+			if topic_name_key not in self.topics:
 				ret = self.add_topic(topic_name, allow_pub=allow_pub, allow_sub=allow_sub)
 				if ret:
 					rospy.loginfo('RostfulServer::add_topics: added topic %s' ,topic_name)
@@ -375,7 +380,7 @@ class RostfulServer:
 				action_name_key = action_name[1:]
 			else:
 				action_name_key = action_name
-			if not self.actions.has_key(action_name_key):
+			if action_name_key not in self.actions:
 				ret = self.add_action(action_name)
 				if ret: rospy.loginfo('RostfulServer::add_actions: added action %s', action_name)
 
@@ -435,10 +440,10 @@ class RostfulServer:
 
 		if not suffix:
 			topic_name = ''
-			if not self.topics.has_key(path):
+			if path not in self.topics:
 				for action_suffix in [Action.STATUS_SUFFIX,Action.RESULT_SUFFIX,Action.FEEDBACK_SUFFIX]:
 					action_name = path[:-(len(action_suffix)+1)]
-					if path.endswith('/' + action_suffix) and self.actions.has_key(action_name):
+					if path.endswith('/' + action_suffix) and action_name in self.actions:
 						action = self.actions[action_name]
 						topic_name = action.name
 						msg = action.get(action_suffix)
@@ -479,14 +484,14 @@ class RostfulServer:
 
 		path = path[:-(len(suffix)+1)]
 
-		if suffix == MSG_PATH and self.topics.has_key(path):
+		if suffix == MSG_PATH and path in self.topics:
 				return response_200(start_response, definitions.get_topic_msg(self.topics[path]), content_type='text/plain')
-		elif suffix == SRV_PATH and self.services.has_key(path):
+		elif suffix == SRV_PATH and path in self.services:
 				return response_200(start_response, definitions.get_service_srv(self.services[path]), content_type='text/plain')
-		elif suffix == ACTION_PATH and self.actions.has_key(path):
+		elif suffix == ACTION_PATH and path in self.actions:
 				return response_200(start_response, definitions.get_action_action(self.actions[path]), content_type='text/plain')
 		elif suffix == CONFIG_PATH:
-			if self.services.has_key(path):
+			if path in self.services:
 				service_name = path
 
 				service = self.services[service_name]
@@ -496,7 +501,7 @@ class RostfulServer:
 					return response_200(start_response, str(dfile.tojson()), content_type='application/json')
 				else:
 					return response_200(start_response, dfile.tostring(suppress_formats=True), content_type='text/plain')
-			elif self.topics.has_key(path):
+			elif path in self.topics:
 				topic_name = path
 
 				topic = self.topics[topic_name]
@@ -506,7 +511,7 @@ class RostfulServer:
 					return response_200(start_response, str(dfile.tojson()), content_type='application/json')
 				else:
 					return response_200(start_response, dfile.tostring(suppress_formats=True), content_type='text/plain')
-			elif self.actions.has_key(path):
+			elif path in self.actions:
 				action_name = path
 
 				action = self.actions[action_name]
@@ -520,7 +525,7 @@ class RostfulServer:
 				for suffix in [Action.STATUS_SUFFIX,Action.RESULT_SUFFIX,Action.FEEDBACK_SUFFIX,Action.GOAL_SUFFIX,Action.CANCEL_SUFFIX]:
 					if path.endswith('/' + suffix):
 						path = path[:-(len(suffix)+1)]
-						if self.actions.has_key(path):
+						if path in self.actions:
 							action_name = path
 
 							action = self.actions[action_name]
@@ -545,11 +550,11 @@ class RostfulServer:
 			content_type = environ['CONTENT_TYPE'].split(';')[0].strip()
 			use_ros = content_type == ROS_MSG_MIMETYPE
 
-			if self.services.has_key(name):
+			if name in self.services:
 				mode = 'service'
 				service = self.services[name]
 				input_msg_type = service.rostype_req
-			elif self.topics.has_key(name):
+			elif name in self.topics:
 				mode = 'topic'
 				topic = self.topics[name]
 				if not topic.allow_pub:
@@ -558,7 +563,7 @@ class RostfulServer:
 			else:
 				for suffix in [Action.GOAL_SUFFIX,Action.CANCEL_SUFFIX]:
 					action_name = name[:-(len(suffix)+1)]
-					if name.endswith('/' + suffix) and self.actions.has_key(action_name):
+					if name.endswith('/' + suffix) and action_name in self.actions:
 						mode = 'action'
 						action_mode = suffix
 						action = self.actions[action_name]
@@ -617,8 +622,8 @@ class RostfulServer:
 				content_type = 'application/json'
 
 			return response_200(start_response, output_data, content_type=content_type)
-		except Exception, e:
-			print 'An exception occurred!', e
+		except Exception as e:
+			print('An exception occurred!', e)
 			return response_500(start_response, e)
 
 	def rosSetup(self):
@@ -680,6 +685,6 @@ def servermain():
 		rospy.loginfo('rostful_server: Shutting down the server')
 		httpd.socket.close()
 		rospy.signal_shutdown('Closing')
-	except socket.error, e:
+	except socket.error as e:
 		rospy.logerr('rostful_server: %s', e)
 		exit(-1)

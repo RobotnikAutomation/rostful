@@ -21,11 +21,11 @@ class JwtInterface:
 		
 		try:
 			encoded = jwt.encode(payload, self.key, algorithm=self.algorithm)
-		except jwt.exceptions.InvalidKeyError,e:
+		except jwt.exceptions.InvalidKeyError as e:
 			rospy.logerr('JwtInterface::encode: %s. payload %s', e, str(payload))
-		except jwt.exceptions.InvalidAlgorithmError,e:
+		except jwt.exceptions.InvalidAlgorithmError as e:
 			rospy.logerr('JwtInterface::encode: %s. payload %s',e, str(payload))
-		except TypeError,e:
+		except TypeError as e:
 			rospy.logerr('JwtInterface::encode: %s. payload %s',e, str(payload))
 			
 		return encoded
@@ -41,11 +41,11 @@ class JwtInterface:
 		
 		try:
 			decoded = jwt.decode(msg, self.key, algorithm=self.algorithm)
-		except jwt.exceptions.InvalidTokenError,e:
+		except jwt.exceptions.InvalidTokenError as e:
 			rospy.logerr('JwtInterface::decode:InvalidTokenError: %s. key = %s, algorithm = %s, msg = %s',e, self.key, self.algorithm, msg)
-		except jwt.exceptions.DecodeError,e:
+		except jwt.exceptions.DecodeError as e:
 			rospy.logerr('JwtInterface::decode:DecodeError: %s. key = %s, algorithm = %s, msg = %s',e, self.key, self.algorithm, msg)
-		except TypeError,e:
+		except TypeError as e:
 			rospy.logerr('JwtInterface::decode:TypeError: %s. key = %s, algorithm = %s, msg = %s',e, self.key, self.algorithm, msg)
 			
 		return decoded

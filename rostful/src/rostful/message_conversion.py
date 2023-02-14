@@ -30,7 +30,7 @@
 # LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-
+import sys
 import roslib
 import rospy
 
@@ -49,6 +49,11 @@ type_map = {
    "unicode": ["string"],
    "long":    ["uint64"]
 }
+
+if sys.version_info.major == 3:
+    long = int
+    unicode = str
+        
 primitive_types = [bool, int, long, float]
 string_types = [str, unicode]
 list_types = [list, tuple]
