@@ -638,7 +638,10 @@ class RostfulServer:
 
 
 import argparse
-from wsgiref.simple_server import make_server
+from wsgiref.simple_server import make_server, WSGIServer
+
+class MyWSGIServer(WSGIServer):
+        timeout = 1
 
 def servermain():
 	rospy.init_node('rostful_server', anonymous=True, disable_signals=True)
@@ -670,7 +673,7 @@ def servermain():
 	try:
 		server = RostfulServer(args)
 
-		httpd = make_server(args.host, args.port, server.wsgifunc())
+		httpd = make_server(args.host, args.port, server.wsgifunc(), server_class=MyWSGIServer)
 		rospy.loginfo('rostful_server: Started server on  %s:%d', args.host, args.port)
 
 		#Wait forever for incoming http requests
