@@ -18,6 +18,8 @@ import sys
 import re
 from StringIO import StringIO
 
+import signal
+
 from . import message_conversion as msgconv
 from . import deffile, definitions
 
@@ -28,6 +30,7 @@ import time, threading
 from .jwt_interface import JwtInterface
 
 TOPIC_SUBSCRIBER_TIMEOUT=5.0
+
 
 class Service:
 	def __init__(self, service_name, service_type):
@@ -392,6 +395,11 @@ class RostfulServer:
 			pass
 
 	def _handle_get(self, environ, start_response):
+		# we update here the last time we receive a GET (as it is done constantly, once we 
+		# stop receiving a petition we stop updating it)
+		global last_get_time
+		last_get_time = rospy.Time.now()
+
 		path = environ['PATH_INFO']
 		full = get_query_bool(environ['QUERY_STRING'], 'full')
 
@@ -624,6 +632,20 @@ class RostfulServer:
 		'''
 			Creates and inits ROS components
 		'''
+		print('LAST GET TIME: {}'.format(last_get_time.to_sec()))
+		print('NOW: {}'.format(rospy.Time.now().to_sec()))
+		print('TIMER ----------------------- CHeck connection-')
+
+		if (rospy.Time.now() - last_get_time) > rospy.Duration(15):
+			rospy.logerr('rostful_server: (Apagando) Shutting down the server due to time out')
+			
+			global httpd
+			httpd.socket.close()
+			httpd.server_close()
+			
+			rospy.signal_shutdown('Apagando')
+			rospy.signal_shutdown('Apagando')
+
 		if not rospy.is_shutdown():
 			self.add_services(self.args.services)
 			self.add_topics(self.args.topics)
@@ -635,12 +657,15 @@ class RostfulServer:
 			self.t_ros_setup.start()
 
 
-
 import argparse
 from wsgiref.simple_server import make_server
 
+
 def servermain():
 	rospy.init_node('rostful_server', anonymous=True, disable_signals=True)
+
+	global last_get_time
+	last_get_time = rospy.Time.now()
 
 	parser = argparse.ArgumentParser()
 
@@ -659,6 +684,7 @@ def servermain():
 
 	args = parser.parse_args(rospy.myargv()[1:])
 
+
 	init_delay = 0.0
 	if rospy.search_param('init_delay'):
 		init_delay = rospy.get_param('~init_delay')
@@ -669,8 +695,10 @@ def servermain():
 	try:
 		server = RostfulServer(args)
 
+		global httpd
 		httpd = make_server(args.host, args.port, server.wsgifunc())
 		rospy.loginfo('rostful_server: Started server on  %s:%d', args.host, args.port)
+
 
 		#Wait forever for incoming http requests
 		httpd.serve_forever()
