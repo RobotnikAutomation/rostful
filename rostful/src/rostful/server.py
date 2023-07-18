@@ -644,6 +644,14 @@ class RostfulServer:
 
 import argparse
 from wsgiref.simple_server import make_server
+from wsgiref.simple_server import WSGIServer
+
+
+class WSGIServerV6(WSGIServer):
+	'''
+	  This class is only use to override address_family in order to allow IPv6 server
+	'''
+	address_family = socket.AF_INET6
 
 def servermain():
 	rospy.init_node('rostful_server', anonymous=True, disable_signals=True)
@@ -662,6 +670,7 @@ def servermain():
 	parser.add_argument('--jwt', action='store_true', default=False, help='This argument enables the use of JWT to guarantee a secure transmission')
 	parser.add_argument('--jwt-key', default='ros', help='This arguments sets the key to encode/decode the data')
 	parser.add_argument('--jwt-alg', default='HS256', help='This arguments sets the algorithm to encode/decode the data')
+	parser.add_argument('--ipv6', action='store_true', default=False, help="This argument starts the server with an IPv6 instead of IPv4")
 
 	args = parser.parse_args(rospy.myargv()[1:])
 
@@ -674,8 +683,12 @@ def servermain():
 
 	try:
 		server = RostfulServer(args)
-
-		httpd = make_server(args.host, args.port, server.wsgifunc())
+		
+		if args.ipv6:
+			httpd = make_server(args.host, args.port, server.wsgifunc(), server_class=WSGIServerV6)
+		else:
+			httpd = make_server(args.host, args.port, server.wsgifunc())
+			
 		rospy.loginfo('rostful_server: Started server on  %s:%d', args.host, args.port)
 
 		#Wait forever for incoming http requests
