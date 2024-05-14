@@ -30,6 +30,7 @@
 # LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+from threading import Lock
 import sys
 import roslib
 import rospy
@@ -40,20 +41,20 @@ from base64 import standard_b64encode, standard_b64decode
 
 
 type_map = {
-   "bool":    ["bool"],
-   "int":     ["int8", "byte", "uint8", "char",
-               "int16", "uint16", "int32", "uint32",
-               "int64", "uint64", "float32", "float64"],
-   "float":   ["float32", "float64"],
-   "str":     ["string"],
-   "unicode": ["string"],
-   "long":    ["uint64"]
+    "bool":    ["bool"],
+    "int":     ["int8", "byte", "uint8", "char",
+                "int16", "uint16", "int32", "uint32",
+                "int64", "uint64", "float32", "float64"],
+    "float":   ["float32", "float64"],
+    "str":     ["string"],
+    "unicode": ["string"],
+    "long":    ["uint64"]
 }
 
 if sys.version_info.major == 3:
     long = int
     unicode = str
-        
+
 primitive_types = [bool, int, long, float]
 string_types = [str, unicode]
 list_types = [list, tuple]
@@ -68,20 +69,24 @@ list_braces = re.compile(r'\[[^\]]*\]')
 
 class InvalidMessageException(Exception):
     def __init__(self, inst):
-        Exception.__init__(self, "Unable to extract message values from %s instance" % type(inst).__name__)
+        Exception.__init__(
+            self, "Unable to extract message values from %s instance" % type(inst).__name__)
 
 
 class NonexistentFieldException(Exception):
     def __init__(self, basetype, fields):
-        Exception.__init__(self, "Message type %s does not have a field %s" % (basetype, '.'.join(fields)))
+        Exception.__init__(self, "Message type %s does not have a field %s" % (
+            basetype, '.'.join(fields)))
 
 
 class FieldTypeMismatchException(Exception):
     def __init__(self, roottype, fields, expected_type, found_type):
         if roottype == expected_type:
-            Exception.__init__(self, "Expected a JSON object for type %s but received a %s" % (roottype, found_type))
+            Exception.__init__(self, "Expected a JSON object for type %s but received a %s" % (
+                roottype, found_type))
         else:
-            Exception.__init__(self, "%s message requires a %s for field %s, but got a %s" % (roottype, expected_type, '.'.join(fields), found_type))
+            Exception.__init__(self, "%s message requires a %s for field %s, but got a %s" % (
+                roottype, expected_type, '.'.join(fields), found_type))
 
 
 def extract_values(inst):
@@ -89,13 +94,17 @@ def extract_values(inst):
     if rostype is None:
         raise InvalidMessageException()
     return _from_inst(inst, rostype)
+
+
 dump = extract_values
+
 
 def populate_instance(msg, inst):
     """ Returns an instance of the provided class, with its fields populated
     according to the values in msg """
     return _to_inst(msg, inst._type, inst._type, inst)
-#load = populate_instance
+# load = populate_instance
+
 
 def _from_inst(inst, rostype):
     # Special case for uint8[], we base64 encode the string
@@ -125,7 +134,7 @@ def _from_list_inst(inst, rostype):
 
     # Remove the list indicators from the rostype
     rostype = list_braces.sub("", rostype)
-    
+
     # Shortcut for primitives
     if rostype in ros_primitive_types:
         return list(inst)
@@ -210,7 +219,7 @@ def _to_primitive_inst(msg, rostype, roottype, stack):
     if msgtype in primitive_types and rostype in type_map[msgtype.__name__]:
         return msg
     elif msgtype in string_types and rostype in type_map[msgtype.__name__]:
-        return msg.encode("ascii", "ignore")
+        return msg
     raise FieldTypeMismatchException(roottype, stack, rostype, msgtype)
 
 
@@ -253,13 +262,13 @@ def _to_object_inst(msg, rostype, roottype, inst, stack):
         field_inst = getattr(inst, field_name)
 
         field_value = _to_inst(msg[field_name], field_rostype,
-                    roottype, field_inst, field_stack)
+                               roottype, field_inst, field_stack)
 
         setattr(inst, field_name, field_value)
 
     return inst
 
-from threading import Lock
+
 # Variable containing the loaded classes
 _loaded_msgs = {}
 _loaded_srvs = {}
@@ -275,25 +284,25 @@ class InvalidTypeStringException(Exception):
 class InvalidPackageException(Exception):
     def __init__(self, package, original_exception):
         Exception.__init__(self,
-           "Unable to load the manifest for package %s. Caused by: %s"
-           % (package, original_exception.message)
-       )
+                           "Unable to load the manifest for package %s. Caused by: %s"
+                           % (package, original_exception.message)
+                           )
 
 
 class InvalidModuleException(Exception):
     def __init__(self, modname, subname, original_exception):
         Exception.__init__(self,
-           "Unable to import %s.%s from package %s. Caused by: %s"
-           % (modname, subname, modname, str(original_exception))
-        )
+                           "Unable to import %s.%s from package %s. Caused by: %s"
+                           % (modname, subname, modname, str(original_exception))
+                           )
 
 
 class InvalidClassException(Exception):
     def __init__(self, modname, subname, classname, original_exception):
         Exception.__init__(self,
-           "Unable to import %s class %s from package %s. Caused by %s"
-           % (subname, classname, modname, str(original_exception))
-        )
+                           "Unable to import %s class %s from package %s. Caused by %s"
+                           % (subname, classname, modname, str(original_exception))
+                           )
 
 
 def _get_msg_class(typestring):

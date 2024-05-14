@@ -58,25 +58,25 @@ class InvalidTypeStringException(Exception):
 class InvalidPackageException(Exception):
     def __init__(self, package, original_exception):
         Exception.__init__(self,
-           "Unable to load the manifest for package %s. Caused by: %s"
-           % (package, original_exception.message)
-       )
+                           "Unable to load the manifest for package %s. Caused by: %s"
+                           % (package, original_exception.message)
+                           )
 
 
 class InvalidModuleException(Exception):
     def __init__(self, modname, subname, original_exception):
         Exception.__init__(self,
-           "Unable to import %s.%s from package %s. Caused by: %s"
-           % (modname, subname, modname, str(original_exception))
-        )
+                           "Unable to import %s.%s from package %s. Caused by: %s"
+                           % (modname, subname, modname, str(original_exception))
+                           )
 
 
 class InvalidClassException(Exception):
     def __init__(self, modname, subname, classname, original_exception):
         Exception.__init__(self,
-           "Unable to import %s class %s from package %s. Caused by %s"
-           % (subname, classname, modname, str(original_exception))
-        )
+                           "Unable to import %s class %s from package %s. Caused by %s"
+                           % (subname, classname, modname, str(original_exception))
+                           )
 
 
 def get_message_class(typestring):
