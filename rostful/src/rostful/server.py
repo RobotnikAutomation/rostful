@@ -2,12 +2,10 @@ from __future__ import absolute_import
 import sys
 
 if sys.version_info.major < 3:
-	import urlparse
-	from StringIO import StringIO
+    my_parse_qs = urlparse.parse_qs
 else:
-	from urllib.parse import urlparse
-	from io import StringIO 
- 
+    my_parse_qs = parse_qs
+
 import roslib
 from rostful.transforms import mappings, BadTransform, NullTransform
 
@@ -401,9 +399,8 @@ class RostfulServer:
 		path = environ['PATH_INFO']
 		full = get_query_bool(environ['QUERY_STRING'], 'full')
 
-		kwargs = urlparse.parse_qs(environ['QUERY_STRING'], keep_blank_values=True)
-		for key in kwargs:
-			kwargs[key] = kwargs[key][-1]
+        kwargs = my_parse_qs(environ['QUERY_STRING'], keep_blank_values=True)
+
 
 		if self.rest_prefix and path.startswith(self.rest_prefix):
 			path = path[len(self.rest_prefix):]
